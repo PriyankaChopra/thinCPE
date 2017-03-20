@@ -1,0 +1,58 @@
+module policy-template {
+    yang-version 1;
+    namespace "datapathFirewall:policy";
+    prefix policy-template;
+    
+     revision "2016-10-21" {
+        description "Initial version - firewall policy template";
+    }
+
+	grouping fwPolicy {
+    	container firewall-policy {
+       		leaf policy-name{
+    			type string;
+    		}
+       		container l3-match{
+    			leaf source-ip {
+    				type string;
+    			}
+    			leaf source-subnet-mask{
+    				type string;
+    			}
+    			leaf destination-ip {
+    				type string;
+    			}
+    			leaf destination-subnet-mask{
+    				type string;
+    			}
+    			leaf protocol-number{
+    				type uint16;
+    				default 0;
+    			}
+    		}
+       		container l4-match{
+    			leaf source-port {
+    				type uint16;
+    				default 0;
+    			}
+    			leaf destination-port {
+    				type uint16;
+    				default 0;
+    			}
+    		}
+       		leaf action {
+    			type enumeration {
+      				enum "allow" {
+        				value 0;
+        				description "allow the packet from specific given source and destination";
+      				}
+      				enum "drop" {
+        				value 1;
+        				description "drop the packet";
+      				}	
+    			}
+    		}
+    	}  
+	}
+    
+}

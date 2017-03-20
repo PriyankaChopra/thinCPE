@@ -1,0 +1,30 @@
+module policyNotifRpc {
+    yang-version 1;
+    namespace "datapathFirewall:policyNotif";
+    prefix policyNotifRpc;
+
+    revision "2017-03-02" {
+        description "Initial version - policy notification RPC";
+    }
+
+    import policy-template {prefix p;}
+
+
+    rpc policyNotif {
+    	input {
+    		leaf nodeId {
+    			type string;
+    		}
+    		list fwPolicies {
+    			leaf priority {
+    				type uint32;
+    			}
+    			uses p:fwPolicy;
+    		}
+    	}
+    	output {
+    	}
+    } 
+    
+    
+}
