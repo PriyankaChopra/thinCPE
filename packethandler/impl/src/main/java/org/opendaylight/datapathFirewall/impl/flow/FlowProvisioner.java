@@ -1,3 +1,11 @@
+/*
+ * Copyright © 2016 Verizon and others.  All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html
+ */
+
 package org.opendaylight.datapathFirewall.impl.flow;
 
 import java.math.BigInteger;
@@ -14,6 +22,7 @@ import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.yang.gen.v1.datapathfirewall.policy.rev161021.fwpolicy.FirewallPolicy;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpVersion;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Ipv4Prefix;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.PortNumber;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Uri;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.DropActionCaseBuilder;
@@ -72,7 +81,12 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.l2.types.rev130827.EtherTyp
 import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.ethernet.match.fields.EthernetTypeBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.match.EthernetMatchBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.match.IpMatchBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.match.Layer4Match;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.match.layer._3.match.Ipv4MatchBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.match.layer._4.match.TcpMatch;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.match.layer._4.match.TcpMatchBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.match.layer._4.match.UdpMatch;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.model.match.types.rev131026.match.layer._4.match.UdpMatchBuilder;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.common.RpcResult;
 
@@ -217,6 +231,7 @@ public class FlowProvisioner {
 		ethMatchBuilder2.setEthernetType(ethTypeBuilder2.build());
 		matchBuilder.setEthernetMatch(ethMatchBuilder2.build());
 		
+		int protocolNumber = 0;
 		if(policy.getL3Match() != null){
 			Ipv4MatchBuilder ipv4MatchBuilder = new Ipv4MatchBuilder();
 
@@ -243,11 +258,37 @@ public class FlowProvisioner {
 				IpMatchBuilder ipMatchBuilder = new IpMatchBuilder();
 				ipMatchBuilder.setIpProtocol((short)policy.getL3Match().getProtocolNumber().intValue());
 				ipMatchBuilder.setIpProto(IpVersion.Ipv4);
-
+				protocolNumber = policy.getL3Match().getProtocolNumber().intValue();
 				matchBuilder.setIpMatch(ipMatchBuilder.build());
 			}
 			
 		}
+	
+
+	
+                 if(policy.getL4Match() != null){
+                        TcpMatchBuilder tcpMatchBuilder = new TcpMatchBuilder();
+                        UdpMatchBuilder udpMatchBuilder = new UdpMatchBuilder();
+                        if(protocolNumber == 17){
+                           if(policy.getL4Match().getSourcePort() != null){
+                                    udpMatchBuilder.setUdpSourcePort(new PortNumber(policy.getL4Match().getSourcePort())).build();
+                                }  if(policy.getL4Match().getDestinationPort() != null)  {
+                                         udpMatchBuilder.setUdpDestinationPort(new PortNumber(policy.getL4Match().getDestinationPort())).build();
+                                }
+                            matchBuilder.setLayer4Match(udpMatchBuilder.build());
+                              }
+                            else {
+                                 if(policy.getL4Match().getSourcePort() != null){
+                                        tcpMatchBuilder.setTcpSourcePort(new PortNumber(policy.getL4Match().getSourcePort())).build();
+                                }  if(policy.getL4Match().getDestinationPort() != null)  {
+                                         tcpMatchBuilder.setTcpDestinationPort(new PortNumber(policy.getL4Match().getDestinationPort())).build();
+                                }
+                             matchBuilder.setLayer4Match(tcpMatchBuilder.build());
+
+                        }
+                        }
+
+	
 		Match match2 = matchBuilder.build();
 
 		// Create Action list.
@@ -263,7 +304,7 @@ public class FlowProvisioner {
 		}
 		if(null != outPort){
 			if(!outPort.isEmpty()){
-				System.out.println("outPort : "+outPort);
+				//System.out.println("outPort : "+outPort);
 				ActionBuilder outputNodeConnActionBuilder2;
 				// set output port
 				if(outPort.equalsIgnoreCase("ALL")){
@@ -281,7 +322,7 @@ public class FlowProvisioner {
 			}
 			}
 		if(null != policy.getAction()){
-			System.out.println("policy.getAction() :: "+policy.getAction());
+			//System.out.println("policy.getAction() :: "+policy.getAction());
 		if(policy.getAction().equals(org.opendaylight.yang.gen.v1.datapathfirewall.policy.rev161021.fwpolicy.FirewallPolicy.Action.Drop)){
 				//		if(null == dstIpAction && null == outPort){
 				//drop d packet
@@ -359,7 +400,7 @@ public class FlowProvisioner {
 			nodeList = NodesOptional.get().getNode();
 			if(nodeList.size() > 0){
 				for (Node localNode : nodeList) {
-					System.out.println("localNode.getId().toString() " + localNode.getId().toString());
+					//System.out.println("localNode.getId().toString() " + localNode.getId().toString());
 
 					InstanceIdentifier<Node> instanceIdentifier = InstanceIdentifier.builder(Nodes.class).child(Node.class, new NodeKey(new NodeId(localNode.getId().getValue().toString()))).build();
 					System.out.println("Going to push default Flow on the Node " + localNode.getId().getValue().toString());

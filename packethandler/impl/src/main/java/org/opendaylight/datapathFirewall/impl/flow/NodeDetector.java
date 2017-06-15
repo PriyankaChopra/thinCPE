@@ -1,3 +1,10 @@
+/*
+ * Copyright © 2016 Verizon and others.  All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html
+ */
 
 package org.opendaylight.datapathFirewall.impl.flow;
 
@@ -199,18 +206,22 @@ public class NodeDetector implements DataChangeListener, OpendaylightInventoryLi
 
 
 	public void provisionCpeInstance(String deviceId , String insType){
-		String host = "10.1.24.5";
-		String user = "v875003";
-		String password = "vdsi@123";
+		String host = "10.75.46.56";
+		String user = "root";
+		//String password = "";
+            	String privateKey = "vcpe.key";
+
 		java.util.Properties config = new java.util.Properties();
 		config.put("StrictHostKeyChecking", "no");
 		JSch jsch = new JSch();
 		Channel channel = null;
 
-		try {
+		try {/*
 			Session session = jsch.getSession(user, host, 22);
-			session.setPassword(password);
-			session.setConfig(config);
+			jsch.addIdentity(privateKey);
+			//session.setPassword(password);
+   		 System.out.println("identity added ");
+   		 session.setConfig(config);
 			session.connect();
 			System.out.println("Connecting Ssh ... Session is =  "+session.isConnected());
 			System.out.println("Instant Type:::"+insType);
@@ -220,10 +231,10 @@ public class NodeDetector implements DataChangeListener, OpendaylightInventoryLi
 			String instance="VCPE_FW:".concat(deviceId);
 			String cmd;
 			if (insType.contains("del")) {
-				cmd="sh  VCPE_FWScript_Fortinet.sh  1 " + instance + "   0  >  /home/v875003/run.txt";
+				cmd="sh  /home/cloud/VCPE_FW_launch_script.sh  1 " + instance + " 0  >  /home/cloud/run.txt";
 			}			
 			else {
-				cmd = "sh  VCPE_FWScript_Fortinet.sh  1 " + instance + " 1 > /home/v875003/run.txt" ;
+				cmd = "sh /home/cloud/VCPE_FW_launch_script.sh  1 " + instance + " 1 > /home/v875003/run.txt" ;
 			}
 			System.out.println("Command to be executed = " + cmd);
 
@@ -231,6 +242,31 @@ public class NodeDetector implements DataChangeListener, OpendaylightInventoryLi
 			channel.connect();
 			channel.disconnect();
 			session.disconnect();
+		*/
+			String line;
+			Process process1;
+			if (insType.contains("del")) {
+				process1 = Runtime.getRuntime().exec(new String[] {"/bin/sh", "-c", "sh /home/cloud/launchFwInstance.sh "+ deviceId +" 0"});
+				System.out.println("sh /home/cloud/launchFwInstance.sh "+ deviceId +" 0");
+			} else {
+				process1 = Runtime.getRuntime().exec(new String[] {"/bin/sh", "-c", "sh /home/cloud/launchFwInstance.sh "+ deviceId +" 1"});
+				System.out.println("sh /home/cloud/launchFwInstance.sh "+ deviceId +" 1");
+			}
+			process1.waitFor();
+			Integer result = process1.exitValue();
+			System.out.println("Exit_status : "+ result);
+			InputStream stderr = process1.getErrorStream ();
+			InputStream stdout = process1.getInputStream ();
+
+			BufferedReader reader = new BufferedReader (new InputStreamReader(stdout));
+			BufferedReader errorReader = new BufferedReader (new InputStreamReader(stderr));
+			
+	        while ((line = reader.readLine ()) != null) {
+	                System.out.println ("Stdout: " + line);
+	        }
+	        while ((line = errorReader.readLine ()) != null) {
+	                System.out.println ("Stderr: " + line);
+	        }
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.out.println("Exceptions = " +e.getMessage().toString());
